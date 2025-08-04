@@ -1,0 +1,42 @@
+name: Build on Release
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+          cache: true
+          
+      - name: Install dependencies
+        run: go mod tidy
+        
+      - name: Build the project
+        run: make build
+        
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: container-${{ github.ref_name }}
+          path: container
+          if-no-files-found: error
+          
+      - name: Upload binary to release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./container
+          asset_name: container-${{ github.ref_name }}
+          asset_content_type: application/octet-stream
